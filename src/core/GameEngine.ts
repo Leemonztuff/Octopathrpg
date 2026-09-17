@@ -38,6 +38,12 @@ export class GameEngine {
   private projectiles: ProjectileEntity[] = [];
   private enemyPool: ObjectPool<EnemyEntity>;
   private projectilePool: ObjectPool<ProjectileEntity>;
+  // Pooled slash effect objects to avoid per-attack geometry/material allocation
+  private slashPool: { mesh: THREE.Mesh; geo: THREE.PlaneGeometry; mat: THREE.MeshBasicMaterial; active: boolean; startTime: number; duration: number }[] = [];
+  private static readonly SLASH_POOL_SIZE = 8;
+  private static readonly SLASH_DURATION = 200;
+  // Frame callbacks for systems that need per-frame updates without their own RAF
+  private frameCallbacks: Set<() => void> = new Set();
   public questManager: QuestManager;
   public inventorySystem: InventorySystem;
   public overworldManager: OverworldManager;
@@ -109,6 +115,22 @@ export class GameEngine {
     this.enemyPool.warm(8);
     this.projectilePool.warm(15);
 
+    // Pre-allocate slash effect meshes to eliminate per-attack GC spikes
+    for (let i = 0; i < GameEngine.SLASH_POOL_SIZE; i++) {
+      const geo = new THREE.PlaneGeometry(1.4, 1.4);
+      const mat = new THREE.MeshBasicMaterial({
+        map: this.materials.getSlashEffectTexture(),
+        transparent: true,
+        opacity: 1.0,
+        side: THREE.DoubleSide,
+        depthTest: false,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.visible = false;
+      this.renderEngine.scene.add(mesh);
+      this.slashPool.push({ mesh, geo, mat, active: false, startTime: 0, duration: GameEngine.SLASH_DURATION });
+    }
+
     // 4. Spawn Initial Action RPG Enemies & NPCs
     this.spawnDefaultEnemies();
     this.spawnDefaultNpcs();
@@ -127,7 +149,13 @@ export class GameEngine {
 
     this.aiDirector = new AIDirector(
       (name, hp, aiType, attackDamage) => this.spawnEnemyAtRandomLocation(name, hp, aiType, attackDamage),
-      () => this.enemies.filter(e => e.health.isAlive()).length,
+      () => {
+        let alive = 0;
+        for (const e of this.enemies) {
+          if (e.health.isAlive()) alive++;
+        }
+        return alive;
+      },
       () => {
         const h = this.player.health;
         return h.maxHealth > 0 ? h.currentHealth / h.maxHealth : 1.0;
@@ -215,13 +243,14 @@ export class GameEngine {
         const pGridPos = this.player.position.getGridPos();
         const cameraQuaternion = this.renderEngine.octopathCamera.camera.quaternion;
 
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
+        // Swap-and-pop removal: O(1) per removal, no array shifts
+        let writeIdx = 0;
+        for (let i = 0; i < this.enemies.length; i++) {
           const enemy = this.enemies[i];
           if (!enemy.health.isAlive()) {
             this.renderEngine.scene.remove(enemy.containerGroup);
-            this.enemies.splice(i, 1);
             this.enemyPool.release(enemy);
-            continue;
+            continue; // skip — don't copy to writeIdx
           }
 
           // Distance-based update culling: skip full update for far enemies
@@ -231,8 +260,8 @@ export class GameEngine {
           const distSq = dx * dx + dz * dz;
 
           if (distSq > 400) {
-            // >20 tiles away: skip update entirely (still rendered, just no AI/animation)
-            continue;
+            this.enemies[writeIdx++] = enemy;
+            continue; // >20 tiles away: skip update entirely
           }
 
           enemy.updateEnemy(
@@ -247,7 +276,10 @@ export class GameEngine {
             },
             cameraQuaternion
           );
+
+          this.enemies[writeIdx++] = enemy;
         }
+        this.enemies.length = writeIdx;
 
         // Find closest NPC in interaction range
         const pPos = this.player.position.getGridPos();
@@ -300,27 +332,29 @@ export class GameEngine {
       update: (dt: number) => {
         if (this.mapEditor.isEditorMode || this.overworldManager?.isInOverworld()) return;
 
-        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+        // Swap-and-pop removal: O(1) per removal, no array shifts
+        let writeIdx = 0;
+        for (let i = 0; i < this.projectiles.length; i++) {
           const proj = this.projectiles[i];
           if (!proj.isActive) {
-            this.projectiles.splice(i, 1);
             this.projectilePool.release(proj);
-            continue;
+            continue; // skip — don't copy to writeIdx
           }
 
           proj.update(dt);
 
-          // Check collision with enemies
+          // Check collision with enemies (distance-squared, no sqrt)
           let hit = false;
+          const COLLISION_RADIUS_SQ = 0.36; // 0.6 * 0.6
           for (const enemy of this.enemies) {
             if (!enemy.health.isAlive()) continue;
 
             const enemyGrid = enemy.position.getGridPos();
             const dx = proj.position.worldX - (enemyGrid.x + 0.5);
             const dz = proj.position.worldZ - (enemyGrid.z + 0.5);
-            const dist = Math.sqrt(dx * dx + dz * dz);
+            const distSq = dx * dx + dz * dz;
 
-            if (dist < 0.6) { // Collision radius
+            if (distSq < COLLISION_RADIUS_SQ) {
               enemy.takeDamage(proj.damage, true);
               this.createSlashEffect({ x: enemyGrid.x, z: enemyGrid.z });
               proj.deactivate();
@@ -330,10 +364,13 @@ export class GameEngine {
           }
 
           if (hit) {
-            this.projectiles.splice(i, 1);
             this.projectilePool.release(proj);
+            continue; // skip — don't copy to writeIdx
           }
+
+          this.projectiles[writeIdx++] = proj;
         }
+        this.projectiles.length = writeIdx;
       },
     });
 
@@ -351,7 +388,15 @@ export class GameEngine {
       },
     });
 
-    // Subsystem 5: Performance & Dynamic FPS Monitor (Ensures solid 60FPS on low-end mobile)
+    // Subsystem 5: Slash Effects Animation (pooled, no per-attack RAF)
+    this.gameLoop.registerSystem({
+      name: 'SlashEffectSystem',
+      update: () => {
+        this.updateSlashEffects();
+      },
+    });
+
+    // Subsystem 6: Performance & Dynamic FPS Monitor (Ensures solid 60FPS on low-end mobile)
     let perfTimer = 0;
     this.gameLoop.registerSystem({
       name: 'PerformanceMonitorSystem',
@@ -365,9 +410,10 @@ export class GameEngine {
       },
     });
 
-    // Set RenderCallback
+    // Set RenderCallback — also drives registered frame callbacks (e.g. FloatingTextUI)
     this.gameLoop.setRenderCallback(() => {
       this.renderEngine.render();
+      this.notifyFrameCallbacks();
     });
 
     // 7. Setup Debug UI
@@ -528,41 +574,43 @@ export class GameEngine {
 
   private createSlashEffect(targetPos: GridPos): void {
     const targetHeight = this.multiChunkWorld.grid.getVoxelHeight(targetPos.x, targetPos.z);
-    
-    const slashGeo = new THREE.PlaneGeometry(1.4, 1.4);
-    const slashMat = new THREE.MeshBasicMaterial({
-      map: this.materials.getSlashEffectTexture(),
-      transparent: true,
-      opacity: 1.0,
-      side: THREE.DoubleSide,
-      depthTest: false,
-    });
 
-    const slashMesh = new THREE.Mesh(slashGeo, slashMat);
-    slashMesh.position.set(targetPos.x + 0.5, targetHeight + 0.7, targetPos.z + 0.5);
-    slashMesh.quaternion.copy(this.renderEngine.octopathCamera.camera.quaternion);
-    this.renderEngine.scene.add(slashMesh);
+    // Find an inactive slash from the pool
+    let slot = this.slashPool.find(s => !s.active);
+    if (!slot) {
+      // All busy — steal the oldest one
+      slot = this.slashPool.reduce((oldest, s) => s.startTime < oldest.startTime ? s : oldest);
+    }
 
-    const startTime = performance.now();
-    const duration = 200;
+    slot.active = true;
+    slot.startTime = performance.now();
+    slot.mesh.position.set(targetPos.x + 0.5, targetHeight + 0.7, targetPos.z + 0.5);
+    slot.mesh.quaternion.copy(this.renderEngine.octopathCamera.camera.quaternion);
+    slot.mesh.scale.set(0.6, 0.6, 0.6);
+    slot.mat.opacity = 1.0;
+    slot.mesh.visible = true;
+  }
 
-    const animateSlash = () => {
-      const elapsed = performance.now() - startTime;
-      const progress = Math.min(1, elapsed / duration);
-      
+  /**
+   * Called from the game loop to animate pooled slash effects.
+   * Replaces the previous per-attack requestAnimationFrame approach.
+   */
+  public updateSlashEffects(): void {
+    const now = performance.now();
+    for (const slot of this.slashPool) {
+      if (!slot.active) continue;
+      const elapsed = now - slot.startTime;
+      const progress = Math.min(1, elapsed / slot.duration);
+
       const scale = 0.6 + progress * 0.8;
-      slashMesh.scale.set(scale, scale, scale);
-      slashMat.opacity = 1 - progress;
+      slot.mesh.scale.set(scale, scale, scale);
+      slot.mat.opacity = 1 - progress;
 
-      if (progress < 1) {
-        requestAnimationFrame(animateSlash);
-      } else {
-        this.renderEngine.scene.remove(slashMesh);
-        slashGeo.dispose();
-        slashMat.dispose();
+      if (progress >= 1) {
+        slot.active = false;
+        slot.mesh.visible = false;
       }
-    };
-    requestAnimationFrame(animateSlash);
+    }
   }
 
   private async initMapData(camQuad: THREE.Quaternion): Promise<void> {
@@ -1078,5 +1126,20 @@ export class GameEngine {
 
   public getFPS(): number {
     return this.gameLoop.getFPS();
+  }
+
+  /**
+   * Register a callback to be invoked every frame from the main game loop.
+   * Use this instead of creating a separate requestAnimationFrame.
+   */
+  public onFrame(callback: () => void): () => void {
+    this.frameCallbacks.add(callback);
+    return () => { this.frameCallbacks.delete(callback); };
+  }
+
+  private notifyFrameCallbacks(): void {
+    for (const cb of this.frameCallbacks) {
+      cb();
+    }
   }
 }

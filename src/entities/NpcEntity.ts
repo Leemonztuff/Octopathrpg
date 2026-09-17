@@ -7,6 +7,11 @@ import { Direction, GridPos, WorldPos } from '../types';
 
 export type NPCBehaviorType = 'GUARD' | 'WANDER' | 'MERCHANT' | 'IDLE';
 
+// Shared texture cache: one load per spriteIndex, shared across all NPC instances
+const npcTextureCache: Map<number, THREE.Texture> = new Map();
+const npcHeadTextureCache: Map<string, THREE.Texture> = new Map();
+const npcTextureLoader = new THREE.TextureLoader();
+
 export class NpcEntity extends Entity {
   public readonly sprite: NPCSpriteComponent;
   public npcId: string;
@@ -71,35 +76,38 @@ export class NpcEntity extends Entity {
     this.idleSwayAmplitude = 0.02 + Math.random() * 0.04;
     this.idleSwayFreq = 0.9 + Math.random() * 0.8;
 
-    // 1. Decouple textures: Clone body and head textures per NPC instance
-    // This ensures independent texture offset states so NPCs don't share head/body frames with the player or each other.
+    // 1. Shared textures: use cache to avoid redundant HTTP loads and GPU duplication
     let bodyTexture: THREE.Texture;
-    if (spriteIndex !== undefined) {
+    if (spriteIndex !== undefined && npcTextureCache.has(spriteIndex)) {
+      bodyTexture = npcTextureCache.get(spriteIndex)!;
+    } else if (spriteIndex !== undefined) {
       const pad = (num: number, size: number) => {
         let s = num + "";
         while (s.length < size) s = "0" + s;
         return s;
       };
-      const textureLoader = new THREE.TextureLoader();
       const filename = `frame_${pad(spriteIndex, 3)}.webp`;
-      bodyTexture = textureLoader.load(`/spritesheets/${filename}`, (tex) => {
+      bodyTexture = npcTextureLoader.load(`/spritesheets/${filename}`, (tex) => {
         tex.magFilter = THREE.NearestFilter;
         tex.minFilter = THREE.NearestFilter;
         tex.generateMipmaps = false;
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.needsUpdate = true;
       });
+      npcTextureCache.set(spriteIndex, bodyTexture);
     } else {
-      bodyTexture = materials.getPlayerSpritesheetTexture().clone();
-      bodyTexture.magFilter = THREE.NearestFilter;
-      bodyTexture.minFilter = THREE.NearestFilter;
-      bodyTexture.needsUpdate = true;
+      bodyTexture = materials.getPlayerSpritesheetTexture();
     }
 
-    const headTexture = materials.getHeadSpritesheetTexture().clone();
-    headTexture.magFilter = THREE.NearestFilter;
-    headTexture.minFilter = THREE.NearestFilter;
-    headTexture.needsUpdate = true;
+    // Shared head texture: one load across all NPCs
+    const headCacheKey = 'default';
+    let headTexture: THREE.Texture;
+    if (npcHeadTextureCache.has(headCacheKey)) {
+      headTexture = npcHeadTextureCache.get(headCacheKey)!;
+    } else {
+      headTexture = materials.getHeadSpritesheetTexture();
+      npcHeadTextureCache.set(headCacheKey, headTexture);
+    }
 
     this.sprite = new NPCSpriteComponent(bodyTexture, headTexture);
 

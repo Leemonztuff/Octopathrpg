@@ -248,7 +248,9 @@ export class BillboardSystem {
     const dummy = this.alignDummy;
     dummy.scale.set(1, 1, 1);
 
-    this.group.children.forEach((child) => {
+    const children = this.group.children;
+    for (let c = 0; c < children.length; c++) {
+      const child = children[c];
       if (child instanceof THREE.InstancedMesh) {
         const positions = this.instancePositions.get(child.userData.propType as PropType);
         if (positions && positions.length === child.count * 3) {
@@ -274,6 +276,6 @@ export class BillboardSystem {
       } else if (child instanceof THREE.Mesh) {
         child.quaternion.copy(cameraQuaternion);
       }
-    });
+    }
   }
 }

@@ -16,6 +16,7 @@ export class InputManager {
   private activeKeys: Set<string> = new Set();
   private enabled: boolean = true;
   private keyRepeatThrottle: Map<Direction, number> = new Map();
+  private lastActiveDirection: Direction | null = null;
 
   constructor() {
     this.bindEvents();
@@ -71,6 +72,7 @@ export class InputManager {
       // Only trigger if key wasn't already held down (or throttled for held keys)
       if (!this.activeKeys.has(event.code)) {
         this.activeKeys.add(event.code);
+        this.lastActiveDirection = direction;
         this.emitMoveIntent(direction, 'keyboard');
       }
     }
@@ -78,6 +80,15 @@ export class InputManager {
 
   private handleKeyUp = (event: KeyboardEvent): void => {
     this.activeKeys.delete(event.code);
+    // Recalculate last active direction without allocating an array
+    this.lastActiveDirection = null;
+    for (const code of this.activeKeys) {
+      const dir = this.keyMap.get(code);
+      if (dir) {
+        this.lastActiveDirection = dir;
+        break; // use the first valid direction found
+      }
+    }
   };
 
   private handleBlur = (): void => {
@@ -103,18 +114,15 @@ export class InputManager {
   public update(_dt: number): void {
     if (!this.enabled || this.activeKeys.size === 0) return;
 
-    // Get the latest pressed key direction
-    const activeCode = Array.from(this.activeKeys).pop();
-    if (activeCode) {
-      const dir = this.keyMap.get(activeCode);
-      if (dir) {
-        // We emit continuous intent check; PlayerEntity logic will consume it if ready
-        const now = performance.now();
-        const last = this.keyRepeatThrottle.get(dir) || 0;
-        if (now - last > 180) { // Repeat threshold
-          this.keyRepeatThrottle.set(dir, now);
-          this.emitMoveIntent(dir, 'keyboard');
-        }
+    // Use cached direction instead of Array.from(set).pop() which allocates
+    const dir = this.lastActiveDirection;
+    if (dir) {
+      // We emit continuous intent check; PlayerEntity logic will consume it if ready
+      const now = performance.now();
+      const last = this.keyRepeatThrottle.get(dir) || 0;
+      if (now - last > 180) { // Repeat threshold
+        this.keyRepeatThrottle.set(dir, now);
+        this.emitMoveIntent(dir, 'keyboard');
       }
     }
   }

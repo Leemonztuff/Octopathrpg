@@ -97,16 +97,16 @@ export const FloatingTextUI: React.FC<FloatingTextUIProps> = ({ engine: enginePr
     };
   }, []);
 
-  // Continuous high-performance requestAnimationFrame loop
+  // Use the main game loop's frame callback instead of a separate requestAnimationFrame
   useEffect(() => {
-    let animId: number;
+    const engine = engineProp || GameEngine.getInstance();
+    if (!engine) return;
 
     const tick = () => {
       const now = performance.now();
-      const engine = engineProp || GameEngine.getInstance();
       const currentLabels = labelsRef.current;
 
-      if (engine && currentLabels.length > 0) {
+      if (currentLabels.length > 0) {
         const renderEngine = engine.getRenderEngine();
         const camera = renderEngine?.octopathCamera?.camera;
         const renderer = renderEngine?.renderer;
@@ -185,13 +185,12 @@ export const FloatingTextUI: React.FC<FloatingTextUIProps> = ({ engine: enginePr
           }
         }
       }
-
-      animId = requestAnimationFrame(tick);
     };
 
-    animId = requestAnimationFrame(tick);
+    // Register with main game loop instead of standalone RAF
+    const unbind = engine.onFrame(tick);
     return () => {
-      cancelAnimationFrame(animId);
+      unbind();
     };
   }, [engineProp]);
 
