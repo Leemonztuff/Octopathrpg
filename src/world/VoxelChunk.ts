@@ -46,7 +46,10 @@ export class VoxelChunk {
     const endX = startX + this.chunkSize;
     const endZ = startZ + this.chunkSize;
 
-    // Separate geometry face buffers per TileType
+    // Pre-allocate arrays based on chunk face estimate to avoid dynamic growth.
+    // Each cell can have up to 6 faces, each face = 6 vertices * 3 components.
+    const EST_FACES_PER_CELL = 2; // typical: top + 1 side
+    const EST_VERTS = this.chunkSize * this.chunkSize * EST_FACES_PER_CELL * 6 * 3;
     const positionsByTile: Map<TileType, number[]> = new Map();
     const normalsByTile: Map<TileType, number[]> = new Map();
     const uvsByTile: Map<TileType, number[]> = new Map();

@@ -48,6 +48,7 @@ export class OctopathCamera {
 
   // Scratch buffer to avoid allocations in the per-frame update
   private effectiveFocus: THREE.Vector3 = new THREE.Vector3();
+  private lastProjectionFOV: number = 0;
 
   constructor(aspectRatio: number, config?: Partial<OctopathCameraConfig>) {
     this.config = {
@@ -72,6 +73,7 @@ export class OctopathCamera {
     this.targetPitchDegrees = this.config.pitchDegrees;
     this.currentFOV = this.config.fov;
     this.targetFOV = this.config.fov;
+    this.lastProjectionFOV = this.config.fov;
 
     this.camera = new THREE.PerspectiveCamera(
       this.config.fov,
@@ -241,7 +243,11 @@ export class OctopathCamera {
       this.currentFOV = THREE.MathUtils.lerp(this.currentFOV, this.targetFOV, Math.min(1.0, dt * 5.0));
       this.config.fov = this.currentFOV;
       this.camera.fov = this.currentFOV;
-      this.camera.updateProjectionMatrix();
+      // Only rebuild projection matrix when FOV actually changed enough to notice
+      if (Math.abs(this.currentFOV - this.lastProjectionFOV) > 0.1) {
+        this.camera.updateProjectionMatrix();
+        this.lastProjectionFOV = this.currentFOV;
+      }
     }
 
     this.updateCameraPosition();

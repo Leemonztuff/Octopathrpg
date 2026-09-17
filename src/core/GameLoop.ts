@@ -15,6 +15,12 @@ export class GameLoop {
   private frameCount: number = 0;
   private fpsTimer: number = 0;
 
+  // Fixed timestep accumulator: decouple logic rate from render rate
+  // Logic updates at a fixed 60Hz to prevent physics/animation jitter.
+  // Rendering happens every RAF frame with interpolated visuals.
+  private static readonly FIXED_DT = 1 / 60;
+  private accumulator: number = 0;
+
   constructor() {
     this.clock = new GameClock();
   }
@@ -45,27 +51,32 @@ export class GameLoop {
   private tick = (): void => {
     if (!this.isRunning) return;
 
-    const dt = this.clock.update();
+    const rawDt = this.clock.update();
 
     // FPS calculation
     this.frameCount++;
-    this.fpsTimer += dt;
+    this.fpsTimer += rawDt;
     if (this.fpsTimer >= 1.0) {
       this.fps = Math.round(this.frameCount / this.fpsTimer);
       this.frameCount = 0;
       this.fpsTimer = 0;
     }
 
-    // Update all registered systems decoupled
-    for (const system of this.systems) {
-      try {
-        system.update(dt);
-      } catch (err) {
-        console.error(`Error updating system ${system.name}:`, err);
+    // Fixed timestep accumulator: run logic at consistent 60Hz
+    this.accumulator += rawDt;
+    const fixedDt = GameLoop.FIXED_DT;
+    while (this.accumulator >= fixedDt) {
+      for (const system of this.systems) {
+        try {
+          system.update(fixedDt);
+        } catch (err) {
+          console.error(`Error updating system ${system.name}:`, err);
+        }
       }
+      this.accumulator -= fixedDt;
     }
 
-    // Render phase
+    // Render phase (every frame, uncapped)
     if (this.renderCallback) {
       this.renderCallback();
     }

@@ -282,24 +282,42 @@ export class GameEngine {
         this.enemies.length = writeIdx;
 
         // Find closest NPC in interaction range
-        const pPos = this.player.position.getGridPos();
         let closestNpc: NpcEntity | null = null;
         let minDst = 1.75;
         if (!this.mapEditor.isEditorMode) {
-          this.npcs.forEach((npc) => {
+          const pPos = this.player.position.getGridPos();
+          for (let n = 0; n < this.npcs.length; n++) {
+            const npc = this.npcs[n];
             const nPos = npc.position.getGridPos();
             const dx = pPos.x - nPos.x;
             const dz = pPos.z - nPos.z;
-            const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist <= minDst) {
-              minDst = dist;
-              closestNpc = npc;
+            const distSq = dx * dx + dz * dz;
+            if (distSq <= 3.0625) { // 1.75^2
+              const dist = Math.sqrt(distSq);
+              if (dist <= minDst) {
+                minDst = dist;
+                closestNpc = npc;
+              }
             }
-          });
+          }
         }
 
-        // Update all independent NPCs with decoupled animations & AI behavior patterns
-        for (const npc of this.npcs) {
+        // Update NPCs with distance-based culling (skip far NPCs entirely)
+        const NPC_CULL_DIST_SQ = 225; // 15 tiles squared
+        const pGrid = this.player.position.getGridPos();
+        for (let n = 0; n < this.npcs.length; n++) {
+          const npc = this.npcs[n];
+          const nPos = npc.position.getGridPos();
+          const dx = pGrid.x - nPos.x;
+          const dz = pGrid.z - nPos.z;
+          const distSq = dx * dx + dz * dz;
+
+          if (distSq > NPC_CULL_DIST_SQ) {
+            // Far NPC: only update billboard orientation, skip AI/animation
+            npc.updateBillboardOrientation(cameraQuaternion);
+            continue;
+          }
+
           const isSelected = npc === closestNpc;
           npc.updateNpc(dt, cameraQuaternion, isSelected);
         }
