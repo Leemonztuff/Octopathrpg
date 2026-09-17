@@ -1,0 +1,318 @@
+@import "tailwindcss";
+
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap');
+
+/* Pixel Font Utility Classes */
+.font-pixel {
+  font-family: 'Press Start 2P', monospace;
+}
+
+.font-silkscreen {
+  font-family: 'Silkscreen', monospace;
+}
+
+.image-pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* --- TINY GUI PACK V2 - 9-SLICE CONTAINERS --- */
+.tg-box {
+  border-style: solid;
+  border-width: 12px;
+  border-image-source: url('/tiny_gui/GUI_Pack/Containers/TalkBox_16x16.png');
+  border-image-slice: 16 fill;
+  border-image-repeat: repeat;
+  image-rendering: pixelated;
+}
+
+.tg-box-brown {
+  border-style: solid;
+  border-width: 12px;
+  border-image-source: url('/tiny_gui/GUI_Pack/Containers/TalkBox_Brown_16x16.png');
+  border-image-slice: 16 fill;
+  border-image-repeat: repeat;
+  image-rendering: pixelated;
+}
+
+.tg-box-popup {
+  border-style: solid;
+  border-width: 12px;
+  border-image-source: url('/tiny_gui/GUI_Pack/Containers/Popup_Window_Dark_16x16.png');
+  border-image-slice: 16 fill;
+  border-image-repeat: repeat;
+  image-rendering: pixelated;
+}
+
+/* Compact Pixel Card for HUD & Toasts (Zero Bloat, High Clarity) */
+.tg-card {
+  background: rgba(22, 21, 35, 0.94);
+  border: 2px solid #3b3a56;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  image-rendering: pixelated;
+}
+
+/* --- TINY GUI SLOTS (32x32) --- */
+.tg-slot {
+  background-image: url('/tiny_gui/extracted/slot_dark.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.tg-slot:hover {
+  background-image: url('/tiny_gui/extracted/slot_dark_hover.png');
+}
+
+.tg-slot:active {
+  background-image: url('/tiny_gui/extracted/slot_dark_active.png');
+}
+
+.tg-slot-brown {
+  background-image: url('/tiny_gui/extracted/slot_brown.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+/* --- TINY GUI SQUARE BUTTONS --- */
+.tg-btn-slate {
+  background-image: url('/tiny_gui/extracted/btn_slate.png');
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.tg-btn-slate:active {
+  background-image: url('/tiny_gui/extracted/btn_slate_pressed.png');
+}
+
+.tg-btn-gold {
+  background-image: url('/tiny_gui/extracted/btn_gold.png');
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.tg-btn-gold:active {
+  background-image: url('/tiny_gui/extracted/btn_gold_pressed.png');
+}
+
+.tg-btn-green {
+  background-image: url('/tiny_gui/extracted/btn_green.png');
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.tg-btn-green:active {
+  background-image: url('/tiny_gui/extracted/btn_green_pressed.png');
+}
+
+.tg-btn-red {
+  background-image: url('/tiny_gui/extracted/btn_red.png');
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.tg-btn-red:active {
+  background-image: url('/tiny_gui/extracted/btn_red_pressed.png');
+}
+
+/* --- TINY GUI RECTANGLE BUTTONS (48x16) --- */
+.tg-btn-rect-slate {
+  background-image: url('/tiny_gui/extracted/btn_rect_slate.png');
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.tg-btn-rect-slate:active {
+  background-image: url('/tiny_gui/extracted/btn_rect_slate_pressed.png');
+}
+
+.tg-btn-rect-gold {
+  background-image: url('/tiny_gui/extracted/btn_rect_gold.png');
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.tg-btn-rect-gold:active {
+  background-image: url('/tiny_gui/extracted/btn_rect_gold_pressed.png');
+}
+
+.tg-btn-rect-green {
+  background-image: url('/tiny_gui/extracted/btn_rect_green.png');
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.tg-btn-rect-green:active {
+  background-image: url('/tiny_gui/extracted/btn_rect_green_pressed.png');
+}
+
+.tg-btn-rect-red {
+  background-image: url('/tiny_gui/extracted/btn_rect_red.png');
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.tg-btn-rect-red:active {
+  background-image: url('/tiny_gui/extracted/btn_rect_red_pressed.png');
+}
+
+/* Pixel Health / Mana Bar Track */
+.tg-bar-track {
+  background-color: #1e1e28;
+  border: 2px solid #3c3f58;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+  image-rendering: pixelated;
+}
+
+/* Tiny GUI themed lil-gui styling with correct positioning */
+.lil-gui {
+  top: 76px !important;
+  right: 16px !important;
+  --background-color: #1a1926e8 !important;
+  --text-color: #f4f4f8 !important;
+  --title-background-color: #26243ae8 !important;
+  --widget-color: #3b3954 !important;
+  --hover-color: #55527a !important;
+  --focus-color: #f0b541 !important;
+  font-family: 'Silkscreen', monospace !important;
+  font-size: 10px !important;
+  border: 2px solid #5a577d !important;
+  border-radius: 4px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75) !important;
+  overflow: hidden !important;
+  image-rendering: pixelated !important;
+}
+
+/* Hide lil-gui on mobile portrait to avoid blocking game view and overlaps */
+@media (max-width: 767px) {
+  .lil-gui {
+    display: none !important;
+  }
+}
+
+/* --- RAGNAROK ONLINE FLOATING TEXT STYLES --- */
+.ro-damage-text {
+  font-family: 'Silkscreen', 'Press Start 2P', monospace;
+  font-weight: 700;
+  text-rendering: geometricPrecision;
+  user-select: none;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* White Damage on Enemy with Thick Crisp Black Border */
+.ro-damage-normal {
+  color: #ffffff;
+  text-shadow:
+    -2px -2px 0 #000,
+     2px -2px 0 #000,
+    -2px  2px 0 #000,
+     2px  2px 0 #000,
+     0px -2px 0 #000,
+     0px  2px 0 #000,
+    -2px  0px 0 #000,
+     2px  0px 0 #000,
+     0px  4px 6px rgba(0, 0, 0, 0.85);
+}
+
+/* Yellow / Gold Critical Hit with Deep Crimson Border */
+.ro-damage-crit {
+  color: #ffea00;
+  text-shadow:
+    -2px -2px 0 #7f1d1d,
+     2px -2px 0 #7f1d1d,
+    -2px  2px 0 #7f1d1d,
+     2px  2px 0 #7f1d1d,
+     0px -2px 0 #7f1d1d,
+     0px  2px 0 #7f1d1d,
+    -2px  0px 0 #7f1d1d,
+     2px  0px 0 #7f1d1d,
+     0px  0px 8px rgba(250, 204, 21, 0.9),
+     0px  4px 8px rgba(0, 0, 0, 0.9);
+}
+
+/* Cyan Magic Damage with Dark Blue Border and Arcane Glow */
+.ro-damage-magic {
+  color: #38bdf8;
+  text-shadow:
+    -2px -2px 0 #0c4a6e,
+     2px -2px 0 #0c4a6e,
+    -2px  2px 0 #0c4a6e,
+     2px  2px 0 #0c4a6e,
+     0px -2px 0 #0c4a6e,
+     0px  2px 0 #0c4a6e,
+    -2px  0px 0 #0c4a6e,
+     2px  0px 0 #0c4a6e,
+     0px  0px 10px rgba(56, 189, 248, 0.85),
+     0px  4px 8px rgba(0, 0, 0, 0.9);
+}
+
+/* Red Damage to Player */
+.ro-damage-player {
+  color: #ef4444;
+  text-shadow:
+    -2px -2px 0 #450a0a,
+     2px -2px 0 #450a0a,
+    -2px  2px 0 #450a0a,
+     2px  2px 0 #450a0a,
+     0px -2px 0 #450a0a,
+     0px  2px 0 #450a0a,
+    -2px  0px 0 #450a0a,
+     2px  0px 0 #450a0a,
+     0px  4px 6px rgba(0, 0, 0, 0.85);
+}
+
+/* Green Healing with Dark Emerald Border */
+.ro-damage-heal {
+  color: #22c55e;
+  text-shadow:
+    -2px -2px 0 #064e3b,
+     2px -2px 0 #064e3b,
+    -2px  2px 0 #064e3b,
+     2px  2px 0 #064e3b,
+     0px -2px 0 #064e3b,
+     0px  2px 0 #064e3b,
+    -2px  0px 0 #064e3b,
+     2px  0px 0 #064e3b,
+     0px  0px 8px rgba(34, 197, 94, 0.6),
+     0px  4px 6px rgba(0, 0, 0, 0.85);
+}
+
+/* Miss Label */
+.ro-damage-miss {
+  color: #cbd5e1;
+  text-shadow:
+    -2px -2px 0 #0f172a,
+     2px -2px 0 #0f172a,
+    -2px  2px 0 #0f172a,
+     2px  2px 0 #0f172a,
+     0px  4px 6px rgba(0, 0, 0, 0.85);
+}
+
+@keyframes shrinkBar {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+

@@ -1,0 +1,26 @@
+node_modules/
+build/
+dist/
+coverage/
+.vite/
+.DS_Store
+thumbs.db
+*.log
+*.tsbuildinfo
+.env*
+!.env.example
+bun.lock
+
+# Images (too large for git)
+*.png
+*.webp
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.ico
+public/props/
+public/tiles/
+public/spritesheets/
+public/tiny_gui/
+public/map/MiniWorldSprites/
